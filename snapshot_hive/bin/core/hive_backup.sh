@@ -70,8 +70,7 @@ extract_table_DDL () {
   table_absolute_path=$(cat ${SCHEMA_DDL_FILE} | egrep "^LOCATION$" -A 1 |  egrep -v  "^LOCATION$" | tr -d "'" )
   table_relative_path=$(echo ${table_absolute_path} | sed -E 's#hdfs://([^/]+)*##')
   # create hdfs snapshot for the table
-  ${project_dir}/../snapshot_hdfs/bin/core/hdfs_backup_user_operations.bash \
-  create_snapshot  ${table_relative_path} ${snapshot_name}
+  ${project_dir}/../snapshot_hdfs/bin/core/hdfs_backup_user_operations.bash create_snapshot ${table_relative_path} ${snapshot_name}
 
   [[  $? -eq 0 ]] || \
   { echo "ERROR: while taking  snapshot for table ${hive_db_name}.${hive_table_name}  " ; exit 1 ;}
