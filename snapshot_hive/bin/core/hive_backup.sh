@@ -4,12 +4,22 @@
  # set -o nounset   # abort on unbound variable
  set -o pipefail  # don't hide errors within pipes
 
+
 TERMINATE=";"
 BEELINE="beeline -u jdbc:hive2://sandbox-hdp.hortonworks.com:2181/;serviceDiscoveryMode=zooKeeper;zooKeeperNamespace=hiveserver2
 --showHeader=false --outputformat=tsv2 "
 
+readonly script_name=$(basename "${0}")
+readonly script_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+readonly project_dir="${script_dir}/../.."
+
 
 extract_table_DDL () {
+
+  # every_version of data & metadata is timestamped with $snapshot_name
+  snapshot_name=$(echo  s`date +"%Y%m%d-%H%M%S.%3N"`)
+
   echo "$FUNCNAME"
 
   # check
@@ -21,7 +31,7 @@ extract_table_DDL () {
   hive_table_name=$2
   [[ -z ${hive_table_name} ]] && hive_table_name="managedpartitioned"
 
-  SCHEMA_DDL_FILE="${hive_db_name}.${hive_table_name}_extract_table_creation_DDL.hql"
+  SCHEMA_DDL_FILE="${hive_db_name}.${hive_table_name}_${snapshot_name}.hql"
 
   #clean up
   rm  -fr ${SCHEMA_DDL_FILE}
@@ -30,35 +40,48 @@ extract_table_DDL () {
    ${BEELINE} -e \
     "show create table ${hive_db_name}.${hive_table_name} ${TERMINATE}" \
     >>  ${SCHEMA_DDL_FILE}
-    [[  $? -eq 0 ]] || { echo "ERROR" ; exit ;}
+    [[  $? -eq 0 ]] || { echo "ERROR" ; exit 1 ;}
 
      echo ${TERMINATE} >>  ${SCHEMA_DDL_FILE}
 
   # extract partitions DDL if any
   listpartitions=$( ${BEELINE} -e "show partitions ${hive_db_name}.${hive_table_name} ;" 2> /dev/null )
-    [[  $? -eq 0 ]] || {  exit 0 ;}
 
-  for tablepart in ${listpartitions}
-     do
-        local partname=`echo ${tablepart/=/=\"}`
-        echo $partname
-        echo "ALTER TABLE ${hive_table_name} ADD PARTITION ($partname\");" \
-         >> ${SCHEMA_DDL_FILE}
-     done
 
-  echo "TABLE ${hive_db_name}.${hive_table_name} created in ${SCHEMA_DDL_FILE}"
+  if [[  $? -eq 0 && ! -z ${listpartitions} ]]; then
 
-  echo "table data saved by snapshott mecanism"
-  table_location=$( cat ${SCHEMA_DDL_FILE} | egrep "^LOCATION$" -A 1 |  egrep -v  "^LOCATION$")
+    echo "INFO: table ${hive_table_name} is  a partionned table"
+    echo "INFO: Extracting Partition DDL"
+
+    for tablepart in ${listpartitions}
+       do
+          local partname=`echo ${tablepart/=/=\"}`
+          echo $partname
+          echo "ALTER TABLE ${hive_table_name} ADD PARTITION ($partname\");" \
+           >> ${SCHEMA_DDL_FILE}
+       done
+
+  fi
+
+
+  echo "INFO: table ${hive_db_name}.${hive_table_name} created in ${SCHEMA_DDL_FILE}"
+  echo "INFO: table data saved by hdfs snapshott mecanism"
+
+  table_absolute_path=$(cat ${SCHEMA_DDL_FILE} | egrep "^LOCATION$" -A 1 |  egrep -v  "^LOCATION$" | tr -d "'" )
+  table_relative_path=$(echo ${table_absolute_path} | sed -E 's#hdfs://([^/]+)*##')
+  # create hdfs snapshot for the table
+  ${project_dir}/../snapshot_hdfs/bin/core/hdfs_backup_user_operations.bash \
+  create_snapshot  ${table_relative_path} ${snapshot_name}
+
+  [[  $? -eq 0 ]] || \
+  { echo "ERROR: while taking  snapshot for table ${hive_db_name}.${hive_table_name}  " ; exit 1 ;}
+
 
 
 }
 
 
-save_table_data () {
 
-
-}
 
 # restauration process is better to be done manually
 restore_table () {
@@ -71,8 +94,8 @@ restore_table () {
   #!!! in case of managed table the snamshots are crated by the owner ( =hive ) or superuser
   # if table is partitionned, a manual add of partitions requires the refresh of metadata
   MSCK REPAIR TABLE t1;
-}
 
+}
 
 # save_table_creation $@
 extract_table_DDL $@

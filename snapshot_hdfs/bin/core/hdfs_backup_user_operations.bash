@@ -6,8 +6,11 @@
 set -e    # abort on unbound variable
 set -o pipefail  # don't hide errors within pipes
 
+readonly script_name=$(basename "${0}")
+readonly script_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-. "../utils/hdfs_backup_user_utils.bash"
+.  "${script_dir}/../utils/hdfs_backup_user_utils.bash"
+
 
 [[ $# -eq 0 ]] && usage && exit 1 ;
 

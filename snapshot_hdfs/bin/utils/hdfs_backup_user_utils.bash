@@ -68,7 +68,7 @@ list_snapshottable_dirs() {
 
 create_snapshot () {
   #  hdfs dfs -createSnapshot <path> [<snapshotName>]
-  [[ $# -eq 1 ]] || \
+  [[ $# -eq 0 ]] || \
   { echo "$FUNCNAME: Please provide a path "; exit 1 ;}
   snapshot_name=$2
   if   [[ -z ${snapshot_name} ]]; then
@@ -76,11 +76,12 @@ create_snapshot () {
   else
     hdfs dfs -createSnapshot $1 ${snapshot_name}
   fi
-
 }
+
 
 # get list of retained snapnshots in chronological order
 list_all_snapshots () {
+
   [[ $# -eq 1 ]] || \
   { echo "$FUNCNAME: Please provide a path "; exit 1 ;}
   local dir=$1

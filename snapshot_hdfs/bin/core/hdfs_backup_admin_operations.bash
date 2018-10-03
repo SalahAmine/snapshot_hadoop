@@ -4,7 +4,11 @@
 set -o pipefail
 set -e
 
-. "../utils/hdfs_backup_admin_utils.bash"
+readonly script_name=$(basename "${0}")
+readonly script_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+.  "${script_dir}/../utils/hdfs_backup_admin_utils.bash"
+
 
   case "$1" in
     allow_snapshot)
