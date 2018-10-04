@@ -11,7 +11,7 @@ usage() {
     ## list all  availalble snapnshots for a directory
     list_all_snapshots <dir>
     ## apply retention policy on snapshotted directories
-    check_and_apply_retention <dir> <number_of_snapshot_copies_to_retain>
+    hdfs_check_and_apply_retention <dir> <number_of_snapshot_copies_to_retain>
     ## usage guide
     usage
 
@@ -92,7 +92,7 @@ list_all_snapshots () {
 
 }
 
-check_and_apply_retention() {
+hdfs_check_and_apply_retention() {
 
    [[ $# -eq 1 || $# -eq 2  ]]  || { usage && exit 1 ;}
 
