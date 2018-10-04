@@ -67,6 +67,7 @@ list_snapshottable_dirs() {
 }
 
 create_snapshot () {
+
   #  hdfs dfs -createSnapshot <path> [<snapshotName>]
   [[ $# -eq 0 ]] && \
   { echo "$FUNCNAME: Please provide a path "; exit 1 ;}

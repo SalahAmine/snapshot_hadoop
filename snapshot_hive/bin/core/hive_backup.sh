@@ -5,22 +5,22 @@
  set -o pipefail  # don't hide errors within pipes
 
 
-TERMINATE=";"
-BEELINE="beeline -u jdbc:hive2://sandbox-hdp.hortonworks.com:2181/;serviceDiscoveryMode=zooKeeper;zooKeeperNamespace=hiveserver2
---showHeader=false --outputformat=tsv2 "
-
 readonly script_name=$(basename "${0}")
 readonly script_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+readonly project_dir=$( readlink -f  ${script_dir}/../.. )
 
-readonly project_dir="${script_dir}/../.."
+echo "script_name" $script_name
+echo "script_dir" $script_dir
+echo "project_dir" $project_dir
+# source env variables
+. ${project_dir}/conf/env.sh
 
 
 extract_table_DDL () {
+  echo "$FUNCNAME"
 
   # every_version of data & metadata is timestamped with $snapshot_name
   snapshot_name=$(echo  s`date +"%Y%m%d-%H%M%S.%3N"`)
-
-  echo "$FUNCNAME"
 
   # check
   [[ $# -eq 2 ]]  || \
@@ -33,16 +33,15 @@ extract_table_DDL () {
 
   SCHEMA_DDL_FILE="${hive_db_name}.${hive_table_name}_${snapshot_name}.hql"
 
-  #clean up
-  rm  -fr ${SCHEMA_DDL_FILE}
 
+  echo "INFO: extracting schema for table ${hive_db_name}.${hive_table_name} "
   # extract schema
    ${BEELINE} -e \
     "show create table ${hive_db_name}.${hive_table_name} ${TERMINATE}" \
-    >>  ${SCHEMA_DDL_FILE}
+    >>  ${project_dir}/output/${SCHEMA_DDL_FILE}
     [[  $? -eq 0 ]] || { echo "ERROR" ; exit 1 ;}
 
-     echo ${TERMINATE} >>  ${SCHEMA_DDL_FILE}
+     echo ${TERMINATE} >>  ${project_dir}/output/${SCHEMA_DDL_FILE}
 
   # extract partitions DDL if any
   listpartitions=$( ${BEELINE} -e "show partitions ${hive_db_name}.${hive_table_name} ;" 2> /dev/null )
@@ -58,23 +57,20 @@ extract_table_DDL () {
           local partname=`echo ${tablepart/=/=\"}`
           echo $partname
           echo "ALTER TABLE ${hive_table_name} ADD PARTITION ($partname\");" \
-           >> ${SCHEMA_DDL_FILE}
+           >> ${project_dir}/output/${SCHEMA_DDL_FILE}
        done
-
   fi
+  echo "INFO: table ${hive_db_name}.${hive_table_name} created in ${project_dir}/output/${SCHEMA_DDL_FILE}"
 
+  echo "INFO: Taking a snapshot of the table ${hive_db_name}.${hive_table_name}"
 
-  echo "INFO: table ${hive_db_name}.${hive_table_name} created in ${SCHEMA_DDL_FILE}"
-  echo "INFO: table data saved by hdfs snapshott mecanism"
-
-  table_absolute_path=$(cat ${SCHEMA_DDL_FILE} | egrep "^LOCATION$" -A 1 |  egrep -v  "^LOCATION$" | tr -d "'" )
+  table_absolute_path=$(cat ${project_dir}/output/${SCHEMA_DDL_FILE} | egrep "^LOCATION$" -A 1 |  egrep -v  "^LOCATION$" | tr -d "'" )
   table_relative_path=$(echo ${table_absolute_path} | sed -E 's#hdfs://([^/]+)*##')
   # create hdfs snapshot for the table
   ${project_dir}/../snapshot_hdfs/bin/core/hdfs_backup_user_operations.bash create_snapshot ${table_relative_path} ${snapshot_name}
 
   [[  $? -eq 0 ]] || \
   { echo "ERROR: while taking  snapshot for table ${hive_db_name}.${hive_table_name}  " ; exit 1 ;}
-
 
 
 }
@@ -99,6 +95,4 @@ restore_table () {
 # save_table_creation $@
 extract_table_DDL $@
 
-cat ${SCHEMA_DDL_FILE}
-
-save_table_data
+# cat ${project_root_dir}/output/${SCHEMA_DDL_FILE}
