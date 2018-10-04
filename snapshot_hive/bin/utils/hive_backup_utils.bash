@@ -7,13 +7,17 @@
 usage() {
      cat <<- EOF
 
-   Admin  utility script for managing HDFS snapnshots
-   MUST BE RUN WITH HADOOP SUPERUSER PRIVILEGES
+     utility script for backuping hive tables
+     strategy: a backup constists of :
+     1-backup schema into output/${hive_db_name}.${hive_table_name}.${SNAPSHOT_NAME}
+     2-bachkup of data table ( using hdfs snapshot mechanism ) under the table location  with the same ${SNAPSHOT_NAME}
 
-         ## extracts schema of table
-         extract_table_DDL <hive_db_name> <hive_table_name>
-         ##
-         DDL_check_and_apply_retention <dir>
+   MUST BE RUN WITH TABLE OWNER PRIVILEGES
+
+         ## backup an hive table
+         backup_table <hive_db_name> <hive_table_name>
+
+         schema_table_check_and_apply_retention <dir>
          ## usage guide
          usage
 
@@ -21,42 +25,33 @@ EOF
 }
 
 ## private  functions
-
 check_table_exists() {
 
   [[ $# -eq 2 ]]  ||  { usage  ; exit 1 ;}
   # check table existence
   ${BEELINE} -e \
   "describe  $1.$2 ;"  >/dev/null
-  [[ $? -eq 0 ]] || { echo "ERROR checking existence of table $1.$2" ; exit 1 ; }
-
+  [[ $? -eq 0 ]] || { echo "$FUNCNAME: ERROR checking existence of table $1.$2" ; exit 1 ; }
+}
+is_strictly_positive_integer() {
+    [[ $# -eq 1 ]] && [[ "$1" =~ ^[0-9]+$ ]] && [[ $1 -gt 0 ]] || \
+    { echo "$FUNCNAME: ERROR $1 must be a valid integer and > 0" ; exit 1 ;}
 }
 
-
-## public functions
-backup_hive_table() {
-  echo "$FUNCNAME"
-  # check
-  [[ $# -eq 2 ]]  ||   { usage  ; exit 1 ;}
-
-backup_table_schema $1 $2
-
-backup_table_data $1 $2
-
-
-}
 
 backup_table_schema () {
   echo "$FUNCNAME"
   # check
   [[ $# -eq 2 ]]  ||   { usage  ; exit 1 ;}
+  check_table_exists $1 $2
+
   local hive_db_name=$1
   local hive_table_name=$2
 
-  SCHEMA_DDL_FILE="${hive_db_name}.${hive_table_name}.${snapshot_name}.hql"
+  SCHEMA_DDL_FILE="${hive_db_name}.${hive_table_name}.${SNAPSHOT_NAME}.hql"
 
   echo "INFO: extracting schema for table ${hive_db_name}.${hive_table_name} "
-  # extract schema
+  # extract schema ; check of ${hive_db_name}.${hive_table_name} validity provided by beeline
    ${BEELINE} -e \
     "show create table ${hive_db_name}.${hive_table_name} ${TERMINATE}" \
     >>  ${project_dir}/output/${SCHEMA_DDL_FILE}
@@ -83,12 +78,12 @@ backup_table_schema () {
   echo "INFO: table ${hive_db_name}.${hive_table_name} created in ${project_dir}/output/${SCHEMA_DDL_FILE}"
 
 }
-
-
 backup_table_data() {
   echo "$FUNCNAME"
   # check
   [[ $# -eq 2 ]]  ||   { usage  ; exit 1 ;}
+  check_table_exists $1 $2
+
   local hive_db_name=$1
   local hive_table_name=$2
 
@@ -97,28 +92,21 @@ backup_table_data() {
   table_absolute_path=$(cat ${project_dir}/output/${SCHEMA_DDL_FILE} | egrep "^LOCATION$" -A 1 |  egrep -v  "^LOCATION$" | tr -d "'" )
   table_relative_path=$(echo ${table_absolute_path} | sed -E 's#hdfs://([^/]+)*##')
   # create hdfs snapshot for the table
-  ${project_dir}/../snapshot_hdfs/bin/core/hdfs_backup_user_operations.bash create_snapshot ${table_relative_path} ${snapshot_name}
+  ${project_dir}/../snapshot_hdfs/bin/core/hdfs_backup_user_operations.bash create_snapshot ${table_relative_path} ${SNAPSHOT_NAME}
 
   [[  $? -eq 0 ]] || \
   { echo "ERROR: while taking  snapshot for table ${hive_db_name}.${hive_table_name}  " ; exit 1 ;}
 
 }
 
+schema_table_check_and_apply_retention() {
 
-hive_check_and_apply_retention() {
+  local hive_db_name=$1
+  local hive_table_name=$2
 
-  [[ $# -eq 2 || $# -eq 3  ]]  || { echo "ERROR: usage" && exit 1 ;}
-
-  hive_db_name=$1
-  hive_table_name=$2
-  DDL_check_and_apply_retention ${hive_db_name} ${hive_table_name}
-
-}
-
-
-DDL_check_and_apply_retention() {
-
+  is_strictly_positive_integer $3
   local nb_DDL_snapshots_to_retain=$3
+
   [[ -z ${nb_DDL_snapshots_to_retain} ]] && nb_DDL_snapshots_to_retain=${DEFAULT_NB_DDL_SNAPSHOTS} && \
   echo "INFO number of DDL snapshots to retain not set, applying default retention=${DEFAULT_NB_DDL_SNAPSHOTS}"
 
@@ -144,8 +132,33 @@ DDL_check_and_apply_retention() {
   echo "$(ls -tr  ${project_dir}/output/ | egrep "^${hive_db_name}.${hive_table_name}(.+).hql$"  | xargs -I {} ls -tr  ${project_dir}/output/{} ) "
 
 }
+data_table_check_and_apply_retention(){
 
+  echo "dd"
 
+}
+## public functions
+
+backup_table() {
+  echo "$FUNCNAME"
+  # check
+  [[ $# -eq 2 ]]  ||   { usage  ; exit 1 ;}
+
+  SNAPSHOT_NAME=$(echo  s`date +"%Y%m%d-%H%M%S.%3N"`)
+
+  backup_table_schema $1 $2
+  backup_table_data $1 $2
+
+  echo "INFO: backup table $1 $2 finished"
+}
+
+backup_table_check_and_apply_retention() {
+
+  [[ $# -eq 2 || $# -eq 3  ]]  || { usage && exit 1 ;}
+
+  schema_table_check_and_apply_retention $1 $2 $3
+  data_table_check_and_apply_retention $1 $2 $3
+}
 
 # restauration process is better to be done manually
 restore_table () {
@@ -160,10 +173,3 @@ restore_table () {
   MSCK REPAIR TABLE t1;
 
 }
-
-
-
-# save_table_creation $@
-#extract_table_DDL $@
-DDL_check_and_apply_retention $@
-# cat ${project_root_dir}/output/${SCHEMA_DDL_FILE}

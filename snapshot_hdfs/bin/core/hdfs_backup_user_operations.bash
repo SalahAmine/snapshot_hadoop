@@ -39,9 +39,9 @@ case "$1" in
       shift
     is_snapshottable $@
       ;;
-  check_and_apply_retention)
+  hdfs_check_and_apply_retention)
     shift
-    check_and_apply_retention $@
+    hdfs_check_and_apply_retention $@
     ;;
   -h | --help) usage
     exit 0

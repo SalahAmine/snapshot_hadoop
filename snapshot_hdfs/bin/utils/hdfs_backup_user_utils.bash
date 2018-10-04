@@ -24,7 +24,7 @@ DEFAULT_NB_SNAPSHOTS=7
 ###################################
 ###utlities###
 
-is_positive_integer() {
+is_strictly_positive_integer() {
     [[ $# -eq 1 ]] && [[ "$1" =~ ^[0-9]+$ ]] && [[ $1 -gt 0 ]] || \
     { echo "$FUNCNAME: ERROR $1 must be a valid integer and > 0" ; exit 1 ;}
 }
@@ -101,7 +101,7 @@ hdfs_check_and_apply_retention() {
   echo "INFO number of snapshots to retain not set, applying default retention= ${DEFAULT_NB_SNAPSHOTS}"
 
   # check
-  is_snapshottable ${dir} && is_positive_integer ${nb_snapshots_to_retain}
+  is_snapshottable ${dir} && is_strictly_positive_integer ${nb_snapshots_to_retain}
 
   # core
   local arr_existing_snapshots=( $(list_all_snapshots ${dir}) )
