@@ -26,9 +26,9 @@ readonly project_dir=$( readlink -f  "${script_dir}/../.." )
       backup_table $@
       exit
       ;;
-    DDL_check_and_apply_retention)
+    backup_table_check_and_apply_retention)
       shift
-      DDL_check_and_apply_retention $@
+      backup_table_check_and_apply_retention $@
       exit
       ;;
     usage)

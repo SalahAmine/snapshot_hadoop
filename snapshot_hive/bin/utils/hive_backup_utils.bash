@@ -7,24 +7,30 @@
 usage() {
      cat <<- EOF
 
-     utility script for backuping hive tables
-     strategy: a backup constists of :
+     utility script for backuping hive tables and applying a retention policy on backups
+
+     STRATEGY: a backup constists of
      1-backup schema into output/${hive_db_name}.${hive_table_name}.${SNAPSHOT_NAME}
      2-bachkup of data table ( using hdfs snapshot mechanism ) under the table location  with the same ${SNAPSHOT_NAME}
+
 
    MUST BE RUN WITH TABLE OWNER PRIVILEGES
 
          ## backup an hive table
          backup_table <hive_db_name> <hive_table_name>
 
-         schema_table_check_and_apply_retention <dir>
+         backup_table_check_and_apply_retention <hive_db_name> <hive_table_name> <nb_copies_to_retain>
          ## usage guide
          usage
 
 EOF
 }
 
+
+###############################
 ## private  functions
+###############################
+
 check_table_exists() {
 
   [[ $# -eq 2 ]]  ||  { usage  ; exit 1 ;}
@@ -38,13 +44,22 @@ is_strictly_positive_integer() {
     { echo "$FUNCNAME: ERROR $1 must be a valid integer and > 0" ; exit 1 ;}
 }
 
+get_table_relative_location() {
+
+  local table_absolute_path=$( ${BEELINE} -e "show create table $1.$2 ${TERMINATE}" | \
+    egrep "^LOCATION$" -A 1 |  egrep -v  "^LOCATION$" | tr -d "'")
+  [[ $? -eq 0 ]] || \
+  { echo "$FUNCNAME: ERROR while seraching HDFS LOCATION for table $1.$2  " ; exit 1 ;}
+  local table_relative_path=$(echo ${table_absolute_path} | sed -E 's#hdfs://([^/]+)*##')
+  echo ${table_relative_path}
+}
 
 backup_table_schema () {
   echo "$FUNCNAME"
   # check
   [[ $# -eq 2 ]]  ||   { usage  ; exit 1 ;}
-  check_table_exists $1 $2
 
+  check_table_exists $1 $2
   local hive_db_name=$1
   local hive_table_name=$2
 
@@ -82,8 +97,8 @@ backup_table_data() {
   echo "$FUNCNAME"
   # check
   [[ $# -eq 2 ]]  ||   { usage  ; exit 1 ;}
-  check_table_exists $1 $2
 
+  check_table_exists $1 $2
   local hive_db_name=$1
   local hive_table_name=$2
 
@@ -100,13 +115,12 @@ backup_table_data() {
 }
 
 schema_table_check_and_apply_retention() {
+  echo "$FUNCNAME"
 
   local hive_db_name=$1
   local hive_table_name=$2
 
-  is_strictly_positive_integer $3
-  local nb_DDL_snapshots_to_retain=$3
-
+  [[ ! -z $3 ]] && is_strictly_positive_integer $3 && local nb_DDL_snapshots_to_retain=$3
   [[ -z ${nb_DDL_snapshots_to_retain} ]] && nb_DDL_snapshots_to_retain=${DEFAULT_NB_DDL_SNAPSHOTS} && \
   echo "INFO number of DDL snapshots to retain not set, applying default retention=${DEFAULT_NB_DDL_SNAPSHOTS}"
 
@@ -133,12 +147,21 @@ schema_table_check_and_apply_retention() {
 
 }
 data_table_check_and_apply_retention(){
+  echo "$FUNCNAME"
+  #check
+  check_table_exists $1 $2
 
-  echo "dd"
+  local nb_snapshots_to_retain=$3
+  local table_relative_path=$(get_table_relative_location $1 $2)
+
+  ${project_dir}/../snapshot_hdfs/bin/core/hdfs_backup_user_operations.bash \
+   hdfs_check_and_apply_retention ${table_relative_path} ${nb_snapshots_to_retain}
 
 }
-## public functions
 
+###############################
+## public functions
+###############################
 backup_table() {
   echo "$FUNCNAME"
   # check
@@ -151,7 +174,6 @@ backup_table() {
 
   echo "INFO: backup table $1 $2 finished"
 }
-
 backup_table_check_and_apply_retention() {
 
   [[ $# -eq 2 || $# -eq 3  ]]  || { usage && exit 1 ;}
