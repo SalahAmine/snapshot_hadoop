@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+SNAPSHOT_SUFFIX="_s"
+DEFAULT_NB_SNAPSHOTS=7
