@@ -1,58 +1,62 @@
 #!/usr/bin/env bash
 
-
 usage() {
     cat <<- EOF
+  Admin utility script for managing HBase snapnshots
+  MUST BE RUN WITH  PRIVILEGES
 
-  Admin  utility script for managing HDFS snapnshots
-  MUST BE RUN WITH HADOOP SUPERUSER PRIVILEGES
-
-        ## allow snapshot on a directory: ADMIN ONLY action
-        allow_snapshot <dir>
-        ## disallow snapshot on a directory
-        disallow_snapshot <dir>
-        ## list all  snapshottable directories for all users
-        list_snapshottable_dirs
-        ## usage guide
-        usage
-
+    ## list all snapshots for a given table
+    list_all_snapshots  <hbase_namespace> <hbase_table>
+    ## restore a hbase table to  <snapshot_name>  state
+    restore_table <hbase_namespace> <hbase_table> <snapshot_name>
+    ## apply a retention policy on a table
+    check_and_apply_retention <hbase_namespace> <hbase_table> [nb_snapshots_to_retain]
+    ## usage guide
+    usage
 EOF
 }
-
-# utility
-
+#########################################################
+# private functions
+#########################################################
 is_strictly_positive_integer() {
     [[ $# -eq 1 ]] && [[ "$1" =~ ^[0-9]+$ ]] && [[ $1 -gt 0 ]] || \
-    { echo "$FUNCNAME: ERROR $1 must be a valid integer and > 0" ; exit 1 ;}
+    { error "$FUNCNAME: $1 must be a valid integer and > 0" ; exit 1 ;}
 }
 
 check_hbase_table_exists() {
   echo "exists '$1:$2' "  | hbase shell -n 2>&1 | grep -q "does exist"
-  [[ $? -eq 0 ]] || { echo "$FUNCNAME: ERROR table $1:$2 does not exist"; exit 1 ;}
+  [[ $? -eq 0 ]] || { error "$FUNCNAME: ERROR table $1:$2 does not exist"; exit 1 ;}
 }
 
 check_snapshot_exists() {
-  [[ $# -eq 1 ]] || { echo "$FUNCNAME: Please provide a snapshot_name "; exit 1 ;}
+  [[ $# -eq 1 ]] || { error "$FUNCNAME: Please provide a snapshot_name "; exit 1 ;}
   local snapshot_name=$1
   local res=$( echo "list_snapshots '^${snapshot_name}$' " | hbase shell -n 2>&1  )
-  res= $( echo $res | tr " "  "\n" | egrep  "^${hbase_namespace}.${hbase_table}.*$" | sort -u )
-  [[ -z ${res} ]] && { echo "$FUNCNAME: the provided snapshot_name ${snapshot_name} does not exist "; exit 1 ;}
+  res=$( echo ${res} | tr " "  "\n" | egrep  "^${hbase_namespace}.${hbase_table}.*$" | sort -u )
+  [[ -z ${res} ]] && { error "$FUNCNAME: the provided snapshot_name ${snapshot_name} does not exist "; exit 1 ;}
   [[ ! $( echo ${res} | wc -l ) -eq 1 ]] && { return 0 ;}
 }
 
+#########################################################
+# public functions
+#########################################################
 # get list of retained snapnshots in chronological order
 list_all_snapshots () {
+  #check
   [[ $# -eq 2 ]] || \
-  { echo "$FUNCNAME: ERROR required args are  <hbase_namespace> <hbase_table> "; exit 1 ;}
+  { error "$FUNCNAME: ERROR required args are  <hbase_namespace> <hbase_table> "; exit 1 ;}
   check_hbase_table_exists $1 $2
   local hbase_namespace=$1 ; local hbase_table=$2
   local res=$( echo "list_snapshots '^${hbase_namespace}.${hbase_table}.*$'" | hbase shell -n )
-  echo $res | tr " "  "\n" | egrep  "^${hbase_namespace}.${hbase_table}.*$" | sort -u
+  res=$(echo $res | tr " "  "\n" | egrep  "^${hbase_namespace}.${hbase_table}.*$" | sort -u)
+  [[ -z ${res} ]] && notice "no available snapshots matching regexp ^${hbase_namespace}.${hbase_table}.*$ " && exit 0
+  printf "%s\n" ${res}
 }
 
 restore_table() {
+  #check
   [[ $# -eq 3 ]] || \
-  { echo "$FUNCNAME: ERROR required args are <hbase_namespace> <hbase_table> <snapshot_name> "; exit 1 ;}
+  { error "$FUNCNAME: required args are <hbase_namespace> <hbase_table> <snapshot_name> "; exit 1 ;}
   check_hbase_table_exists $1 $2
   check_snapshot_exists $3
   local hbase_namespace=$1 ; local hbase_table=$2; local snapshot_name=$3
@@ -61,22 +65,18 @@ restore_table() {
          restore_snapshot  '${snapshot_name}', {RESTORE_ACL=>true} ; \
          enable '${hbase_namespace}:${hbase_table}';" | hbase shell -n
 
-  ##hbase usesRPC protocol,  RPC commands are stateless. The only way to be sure of the status of an operation is to check.
-  [[ $? -eq 0 ]] || \
-  { echo "$FUNCNAME: ERROR either the command didn't really succed or it succeeds but client
-  didnt catch that, please redo the action "; exit 1 ;}
-
 }
 
 check_and_apply_retention() {
-
+  #check
   [[ $# -eq 2 || $# -eq 3  ]]  || { usage && exit 1 ;}
-  check_hbase_table_exists $1 $2
-  local hbase_namespace=$1 ; local hbase_table=$2
   [[ ! -z $3 ]] && is_strictly_positive_integer $3
   local nb_snapshots_to_retain=$3
+  check_hbase_table_exists $1 $2
+  local hbase_namespace=$1 ; local hbase_table=$2
+
   [[ -z ${nb_snapshots_to_retain} ]] && nb_snapshots_to_retain=${DEFAULT_NB_SNAPSHOTS} && \
-  echo "INFO number of snapshots to retain not set, applying default retention= ${DEFAULT_NB_SNAPSHOTS}"
+  info "INFO number of snapshots to retain not set, applying default retention= ${DEFAULT_NB_SNAPSHOTS}"
 
   # core
   local arr_existing_snapshots=( $(list_all_snapshots ${hbase_namespace} ${hbase_table}) )
@@ -92,12 +92,11 @@ check_and_apply_retention() {
       #echo "snap to remove" ${snap_to_remove}
       # echo "snap_version_name to remove $snap_version_name"
       #hdfs dfs -ls ${snap_to_remove}
-      echo " delete_snapshot '${snap_to_remove}' ; " | hbase shell -n
+      info " delete_snapshot '${snap_to_remove}' ; " | hbase shell -n
       [[ $? -eq 0 ]] || { echo "ERROR removing snapshot ${snap_to_remove}"; exit 1 ;}
     done
   else
-    echo "INFO no additional snapnshots to remove, ${nb_existing_snapshots} \
-     snapnshots exists for table ${hbase_namespace} ${hbase_table}  "
+    info "no additional snapnshots to remove, ${nb_existing_snapshots} snapnshots exists for table ${hbase_namespace} ${hbase_table}  "
     # echo "INFO list of existing_snapshots"
     # printf "%s\n"  "${arr_existing_snapshots[@]}"
     exit 0

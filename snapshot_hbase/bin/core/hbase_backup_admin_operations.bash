@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
-
 # debug: use set -x
-set -o pipefail
+## source bash utility functions & variables
+.  "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../utils/bash_toolkit.bash"
 
-readonly script_name=$(basename "${0}")
-readonly script_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-readonly project_dir=$( readlink -f  "${script_dir}/../.." )
-
-.  "${script_dir}/../utils/hbase_backup_admin_utils.bash"
-.  "${project_dir}/conf/env.bash"
+.  "${__project_dir}/conf/env.bash"
+.  "${__project_dir}/bin/utils/hbase_backup_admin_utils.bash"
 
 
   case "$1" in
