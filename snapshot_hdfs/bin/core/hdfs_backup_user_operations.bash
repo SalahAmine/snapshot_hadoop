@@ -1,18 +1,12 @@
 #!/usr/bin/env bash
 
-# set -x
-# include set -e at the top. This tells bash that it
-#should exit the script if any statement returns a non-true return value.
-set -e    # abort on unbound variable
-set -o pipefail  # don't hide errors within pipes
+## source bash_toolkit from bash_boilerplate project
+.  "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../utils/bash_toolkit.bash"
 
-readonly script_name=$(basename "${0}")
-readonly script_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-
-.  "${script_dir}/../utils/hdfs_backup_user_utils.bash"
+.  "${__project_dir}/conf/env.bash"
+.  "${__project_dir}/bin/utils/hdfs_backup_user_utils.bash"
 
 
-[[ $# -eq 0 ]] && usage && exit 1 ;
 
 case "$1" in
   list_snapshottable_dirs)

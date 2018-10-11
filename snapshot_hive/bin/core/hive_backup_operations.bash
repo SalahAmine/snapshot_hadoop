@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 # debug: use set -x
 
+## source bash_toolkit from bash_boilerplate project
+.  "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../utils/bash_toolkit.bash"
 
-readonly script_name=$(basename "${0}")
-readonly script_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-readonly project_dir=$( readlink -f  "${script_dir}/../.." )
-
-
-.  "${project_dir}/bin/utils/hive_backup_utils.bash"
-# source env variables
-.  "${project_dir}/conf/env.bash"
+.  "${__project_dir}/conf/env.bash"
+.  "${__project_dir}/bin/utils/hive_backup_utils.bash"
 
 
 # echo "####################################"

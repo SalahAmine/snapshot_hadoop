@@ -1,16 +1,10 @@
-#!/usr/bin/env bash
-
- # set -o errexit   # abort on nonzero exitstatus
- # set -o nounset   # abort on unbound variable
- set -o pipefail  # don't hide errors within pipes
-
 usage() {
      cat <<- EOF
 
      utility script for backuping hive tables and applying a retention policy on backups
 
      STRATEGY: a backup constists of
-     1-backup schema into output/${hive_db_name}.${hive_table_name}.${SNAPSHOT_NAME}
+     1-backup schema into output/<hive_db_name>.<hive_table_name>.<SNAPSHOT_NAME>
      2-bachkup of data table ( using hdfs snapshot mechanism ) under the table location  with the same ${SNAPSHOT_NAME}
 
 

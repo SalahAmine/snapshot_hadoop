@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-## source bash utility functions & variables
+## source bash_toolkit from bash_boilerplate project
 .  "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../utils/bash_toolkit.bash"
 
 .  "${__project_dir}/conf/env.bash"

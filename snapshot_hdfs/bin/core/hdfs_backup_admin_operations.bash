@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 
-# debug: use set -x
-set -o pipefail
-set -e
+## source bash_toolkit from bash_boilerplate project
+.  "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../bash_boilerplate" && pwd)/bash_toolkit.bash"
 
-readonly script_name=$(basename "${0}")
-readonly script_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+.  "${__project_dir}/conf/env.bash"
+.  "${__project_dir}/bin/utils/hdfs_backup_admin_utils.bash"
 
-.  "${script_dir}/../utils/hdfs_backup_admin_utils.bash"
 
 
   case "$1" in
