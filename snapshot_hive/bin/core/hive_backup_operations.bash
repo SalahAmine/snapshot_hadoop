@@ -19,12 +19,12 @@
   case "$1" in
     backup_table)
       shift
-      backup_table $@
+      backup_table "$@"
       exit
       ;;
     backup_table_check_and_apply_retention)
       shift
-      backup_table_check_and_apply_retention $@
+      backup_table_check_and_apply_retention "$@"
       exit
       ;;
     usage)

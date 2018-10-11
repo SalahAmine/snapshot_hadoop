@@ -10,31 +10,38 @@
 case "$1" in
   check_hbase_table_exists)
     shift
-    check_hbase_table_exists $@
+    check_hbase_table_exists "$@"
+    exit
     ;;
   create_table_snapshot)
     shift
-    create_table_snapshot $@
+    create_table_snapshot "$@"
+    exit
     ;;
     delete_snapshot)
       shift
-      delete_snapshot $@
+      delete_snapshot "$@"
+      exit
       ;;
   list_all_snapshots)
     shift
-    list_all_snapshots $@
+    list_all_snapshots "$@"
+    exit
     ;;
   list_all_snapshttable_dirs)
     shift
-    list_all_snapshttable_dirs $@
+    list_all_snapshttable_dirs "$@"
+    exit
     ;;
   is_snapshottable)
       shift
-    is_snapshottable $@
+    is_snapshottable "$@"
+    exit
       ;;
   hdfs_check_and_apply_retention)
     shift
-    hdfs_check_and_apply_retention $@
+    hdfs_check_and_apply_retention "$@"
+    exit
     ;;
   -h | --help) usage
     exit 0

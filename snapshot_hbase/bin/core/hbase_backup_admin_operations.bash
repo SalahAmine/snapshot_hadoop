@@ -10,22 +10,22 @@
   case "$1" in
     list_all_snapshots)
       shift
-      list_all_snapshots $@
+      list_all_snapshots "$@"
       exit
       ;;
     restore_table)
       shift
-      restore_table $@
+      restore_table "$@"
       exit
       ;;
     check_hbase_table_exists)
       shift
-      check_hbase_table_exists $@
+      check_hbase_table_exists "$@"
       exit
       ;;
     check_and_apply_retention)
       shift
-      check_and_apply_retention $@
+      check_and_apply_retention "$@"
       exit
       ;;
     *)  usage

@@ -11,31 +11,31 @@
 case "$1" in
   list_snapshottable_dirs)
     shift
-    list_snapshottable_dirs $@
+    list_snapshottable_dirs "$@"
     ;;
   create_snapshot)
     shift
-    create_snapshot $@
+    create_snapshot "$@"
     ;;
     delete_snapshot)
       shift
-      delete_snapshot $@
+      delete_snapshot "$@"
       ;;
   list_all_snapshots)
     shift
-    list_all_snapshots $@
+    list_all_snapshots "$@"
     ;;
   list_all_snapshttable_dirs)
     shift
-    list_all_snapshttable_dirs $@
+    list_all_snapshttable_dirs "$@"
     ;;
   is_snapshottable)
       shift
-    is_snapshottable $@
+    is_snapshottable "$@"
       ;;
   hdfs_check_and_apply_retention)
     shift
-    hdfs_check_and_apply_retention $@
+    hdfs_check_and_apply_retention "$@"
     ;;
   -h | --help) usage
     exit 0
