@@ -19,7 +19,7 @@ is_strictly_positive_integer() {
 }
 
 check_hbase_table_exists() {
-  if ! echo "exists '$1:$2' " | hbase shell -n 2>&1 | grep -q "does exist" ; then
+  if ! echo "exists '$1:$2' " | hbase shell -n | grep -q "does exist" ; then
    { error "${FUNCNAME[0]}: ERROR table $1:$2 does not exist"; exit 1 ;}
   fi
 }

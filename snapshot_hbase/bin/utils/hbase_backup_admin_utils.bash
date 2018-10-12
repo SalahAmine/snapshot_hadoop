@@ -24,7 +24,7 @@ is_strictly_positive_integer() {
 }
 
 check_hbase_table_exists() {
-  if ! echo "exists '$1:$2' " | hbase shell -n 2>&1 | grep -q "does exist" ; then
+  if ! echo "exists '$1:$2' " | hbase shell -n | grep -q "does exist" ; then
    { error "${FUNCNAME[0]}: ERROR table $1:$2 does not exist"; exit 1 ;}
   fi
 }
@@ -66,8 +66,7 @@ restore_table() {
   if echo " disable '${hbase_namespace}:${hbase_table}' ; \
          restore_snapshot  '${snapshot_name}', {RESTORE_ACL=>true} ; \
          enable '${hbase_namespace}:${hbase_table}';" | hbase shell -n ; then
-
-      info "table ${hbase_namespace}:${hbase_table} restored to snapshot ${snapshot_name} "
+    info "table ${hbase_namespace}:${hbase_table} restored to snapshot ${snapshot_name} "
   else
     {   error "error restoring table ${hbase_namespace}:${hbase_table}  to snapshot ${snapshot_name} "; exit 1 ; }
   fi
@@ -83,7 +82,7 @@ check_and_apply_retention() {
   local hbase_namespace=$1 ; local hbase_table=$2
 
   [[ -z ${nb_snapshots_to_retain} ]] && nb_snapshots_to_retain=${DEFAULT_NB_SNAPSHOTS} && \
-  info "INFO number of snapshots to retain not set, applying default retention= ${DEFAULT_NB_SNAPSHOTS}"
+  info "INFO number of snapshots to retain not set, applying default retention=${DEFAULT_NB_SNAPSHOTS}"
 
   # core
   local arr_existing_snapshots=( $(list_all_snapshots "${hbase_namespace}" "${hbase_table}") )
@@ -95,15 +94,18 @@ check_and_apply_retention() {
     #echo "arr_snapshots_to_remove" $arr_snapshots_to_remove
 
     for snap_to_remove in "${arr_snapshots_to_remove[@]}"; do
-      if ! echo " delete_snapshot '${snap_to_remove}' ; " | hbase shell -n ; then
-         { error "ERROR removing snapshot ${snap_to_remove}"; exit 1 ;}
+      if echo " delete_snapshot '${snap_to_remove}' ; " | hbase shell -n ; then
+        info " snapshot ${snap_to_remove} removed"
+      else
+        { error "ERROR removing snapshot ${snap_to_remove}"; exit 1 ;}
       fi
     done
   else
     info "no additional snapnshots to remove, ${nb_existing_snapshots} snapnshots exists for table ${hbase_namespace} ${hbase_table}  "
     # echo "INFO list of existing_snapshots"
     # printf "%s\n"  "${arr_existing_snapshots[@]}"
-    exit 0
   fi
+  info " retention policy on table ${hbase_namespace}:${hbase_table} with retention=${nb_snapshots_to_retain} applied successfully "
+
 
 }
