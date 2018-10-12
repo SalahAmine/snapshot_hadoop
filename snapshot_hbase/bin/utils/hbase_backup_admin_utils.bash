@@ -3,7 +3,6 @@
 usage() {
     cat <<- EOF
   Admin utility script for managing HBase snapnshots
-  MUST BE RUN WITH  PRIVILEGES
 
     ## list all snapshots for a given table
     list_all_snapshots  <hbase_namespace> <hbase_table>
