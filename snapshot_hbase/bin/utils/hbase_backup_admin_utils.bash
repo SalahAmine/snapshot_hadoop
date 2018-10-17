@@ -74,7 +74,8 @@ restore_table() {
 
 check_and_apply_retention() {
   #check
-  [[ $# -eq 2 || $# -eq 3  ]]  || { usage && exit 1 ;}
+  [[ $# -eq 2 || $# -eq 3  ]]  || \
+  { error "${FUNCNAME[0]}: required args are <hbase_namespace> <hbase_table> <snapshot_name> [nb_snapshots_to_retain] "; exit 1 ;}
   [[ ! -z "$3" ]] && is_strictly_positive_integer "$3"
   local nb_snapshots_to_retain=$3
   check_hbase_table_exists "$1" "$2"
