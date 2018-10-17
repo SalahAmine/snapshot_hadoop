@@ -8,14 +8,6 @@
 .  "${__project_dir}/bin/utils/hive_backup_utils.bash"
 
 
-# echo "####################################"
-# echo "script_name" $script_name
-# echo "script_dir" $script_dir
-# echo "project_dir" $project_dir
-# echo "####################################"
-# echo ""
-
-
   case "$1" in
     backup_table)
       shift

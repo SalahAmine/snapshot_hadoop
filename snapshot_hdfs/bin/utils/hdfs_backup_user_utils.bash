@@ -72,7 +72,7 @@ list_snapshottable_dirs() {
 
 create_snapshot () {
   debug "${FUNCNAME[0]} $@"
-  [[ $# -eq 1 ]] || { error "${FUNCNAME[0]}: ERROR Please provide a path "; exit 1 ;}
+  [[ $# -eq 1 || $# -eq 2 ]] || { usage ; exit 1 ;}
   snapshot_name=$2
   if   [[ -z ${snapshot_name} ]]; then
     hdfs dfs -createSnapshot "$1"
@@ -82,21 +82,21 @@ create_snapshot () {
 }
 
 
-# get list of retained snapnshots in chronological order
+# get list of retained snapnshots in alphabetical order
 list_all_snapshots () {
   debug "${FUNCNAME[0]} $@"
   [[ $# -eq 1 ]] ||  { usage ; exit 1 ;}
   local dir=$1
   is_snapshottable "${dir}"
   local res
-  res=$(hdfs dfs -ls -t  "${dir}"/.snapshot | awk '{print $NF}' | grep "^/")
+  res=$(hdfs dfs -ls -t "${dir}"/.snapshot | awk '{print $NF}' | grep "^/" |  sort -h )
   { [[ -z "${res}" ]]  && "${FUNCNAME[0]}: ERROR no snapshots created yet for directory ${dir}" && exit 1 ;} || echo "${res}"
 
 }
 
 hdfs_check_and_apply_retention() {
   debug "${FUNCNAME[0]} $@"
-  [[ $# -eq 1 || $# -eq 2  ]]  || { usage && exit 1 ;}
+  [[ $# -eq 1 || $# -eq 2 ]]  || { usage && exit 1 ;}
   local dir=$1
   [[ ! -z $2 ]] && is_strictly_positive_integer "$2"
   local nb_snapshots_to_retain=$2
@@ -129,7 +129,9 @@ hdfs_check_and_apply_retention() {
   else
     info "no additional snapnshots to remove, ${nb_existing_snapshots} snapnshots exists for ${dir} directory  "
   fi
-  info "list of remaining_snapshots"
-  printf "%s\n"  "${arr_existing_snapshots[@]}"
+
+  info "list of remaining snapshots"
+  printf '%s\n' "${arr_existing_snapshots[@]:$nb_snapshots_to_remove:$nb_existing_snapshots}"
+  info "hdfs_check_and_apply_retention finished successfully"
 
 }
