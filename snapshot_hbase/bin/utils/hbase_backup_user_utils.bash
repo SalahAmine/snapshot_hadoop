@@ -2,6 +2,7 @@ usage() {
     cat <<- EOF
 
   User utility script for managing HBase snapnshots
+  In case if using coprocessors only admin user is able to manage snapshots
     ## creates a snapshot for table <hbase_namespace>:<hbase_table>
     create_table_snapshot <hbase_namespace> <hbase_table>
     ## usage guide

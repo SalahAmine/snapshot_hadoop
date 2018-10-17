@@ -10,6 +10,8 @@ usage() {
     restore_table <hbase_namespace> <hbase_table> <snapshot_name>
     ## apply a retention policy on a table
     check_and_apply_retention <hbase_namespace> <hbase_table> [nb_snapshots_to_retain]
+    ## delete snapshot by providing its name
+    delete_snapshot <snapshot_name>
     ## usage guide
     usage
 EOF
