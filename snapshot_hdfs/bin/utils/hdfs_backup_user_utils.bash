@@ -10,7 +10,7 @@ usage() {
     ## list all  availalble snapnshots for a directory
     list_all_snapshots <dir>
     ## apply retention policy on snapshotted directories
-    hdfs_check_and_apply_retention <dir> <number_of_snapshot_copies_to_retain>
+    hdfs_check_and_apply_retention <dir> [number_of_snapshot_copies_to_retain :7 by default]
     ## usage guide
     usage
 
@@ -23,12 +23,14 @@ EOF
 ###utlities###
 
 is_strictly_positive_integer() {
-    { [[ $# -eq 1 ]] && [[ "$1" =~ ^[0-9]+$ ]] && [[ $1 -gt 0 ]] ;}  || \
-    { error "${FUNCNAME[0]}: $1 must be a valid integer and > 0" ; exit 1 ;}
+  debug "${FUNCNAME[0]} $@"
+  { [[ $# -eq 1 ]] && [[ "$1" =~ ^[0-9]+$ ]] && [[ $1 -gt 0 ]] ;}  || \
+  { error "${FUNCNAME[0]}: $1 must be a valid integer and > 0" ; exit 1 ;}
 }
 
 
 is_hdfs_dir() {
+  debug "${FUNCNAME[0]} $@"
   local dir=$1
   [[ -z  ${dir} ]] && error "${FUNCNAME[0]}: ERROR empty argument" && exit 1
   hadoop fs -test -d "${dir}" || { error "${FUNCNAME[0]}: ERROR directory ${dir} does not exist" && exit 1 ;}
@@ -37,6 +39,7 @@ is_hdfs_dir() {
 
 is_snapshottable() {
   #set -x
+  debug "${FUNCNAME[0]} $@"
   local dir=$1
   is_hdfs_dir "${dir}"
   local -a  list_user_snapshots=( "$( list_snapshottable_dirs )" )
@@ -48,28 +51,28 @@ is_snapshottable() {
 }
 
 delete_snapshot() {
+  debug "${FUNCNAME[0]} $@"
   #  hdfs dfs -deleteSnapshot <path> <snapshotName>
   local path=$1 ; local snapshot_name=$2
    hdfs dfs -deleteSnapshot "${path}" "${snapshot_name}"
 }
 
-###########################################
-###########################################
-### user operations ###
+#########################################################
+# public functions
+#########################################################
 
 list_snapshottable_dirs() {
-
+  debug "${FUNCNAME[0]} $@"
+  [[ $# -eq 0 ]] || { usage;  exit 1 ;}
   local res
   res=$(hdfs lsSnapshottableDir |  awk '{print $NF}' | grep "^/")
-  { [[ -z ${res} ]] && info "user ${USER} has no snapshottable directory" ;} || echo "${res}"
+  { [[ -z "${res}" ]] && info "user ${USER} has no snapshottable directory" ;} || echo "${res}"
 
 }
 
 create_snapshot () {
-
-  #  hdfs dfs -createSnapshot <path> [<snapshotName>]
-  [[ $# -eq 0 ]] && \
-  { error "${FUNCNAME[0]}: ERROR Please provide a path "; exit 1 ;}
+  debug "${FUNCNAME[0]} $@"
+  [[ $# -eq 1 ]] || { error "${FUNCNAME[0]}: ERROR Please provide a path "; exit 1 ;}
   snapshot_name=$2
   if   [[ -z ${snapshot_name} ]]; then
     hdfs dfs -createSnapshot "$1"
@@ -81,9 +84,8 @@ create_snapshot () {
 
 # get list of retained snapnshots in chronological order
 list_all_snapshots () {
-
-  [[ $# -eq 1 ]] || \
-  { error "${FUNCNAME[0]}: Please provide a path "; exit 1 ;}
+  debug "${FUNCNAME[0]} $@"
+  [[ $# -eq 1 ]] ||  { usage ; exit 1 ;}
   local dir=$1
   is_snapshottable "${dir}"
   local res
@@ -93,18 +95,19 @@ list_all_snapshots () {
 }
 
 hdfs_check_and_apply_retention() {
-
-   [[ $# -eq 1 || $# -eq 2  ]]  || { usage && exit 1 ;}
+  debug "${FUNCNAME[0]} $@"
+  [[ $# -eq 1 || $# -eq 2  ]]  || { usage && exit 1 ;}
   local dir=$1
   [[ ! -z $2 ]] && is_strictly_positive_integer "$2"
   local nb_snapshots_to_retain=$2
-  [[ -z ${nb_snapshots_to_retain} ]] && nb_snapshots_to_retain=${DEFAULT_NB_SNAPSHOTS} && \
-  info "number of snapshots to retain not set, applying default retention= ${DEFAULT_NB_SNAPSHOTS}"
-
+  if [[ -z ${nb_snapshots_to_retain} ]]; then
+  nb_snapshots_to_retain=${DEFAULT_NB_SNAPSHOTS}
+  info "number of snapshots to retain not set, applying default retention=${DEFAULT_NB_SNAPSHOTS}"
+  fi
   # check
   is_snapshottable "${dir}" && is_strictly_positive_integer "${nb_snapshots_to_retain}"
   # core
-  local arr_existing_snapshots=( "$(list_all_snapshots "${dir}")" )
+  local arr_existing_snapshots=( $(list_all_snapshots "${dir}") )
   local nb_existing_snapshots=${#arr_existing_snapshots[@]}
 
   if [[ ${nb_existing_snapshots} -gt ${nb_snapshots_to_retain} ]]; then
@@ -117,14 +120,16 @@ hdfs_check_and_apply_retention() {
       #echo "snap to remove" ${snap_to_remove}
       # echo "snap_version_name to remove $snap_version_name"
       #hdfs dfs -ls ${snap_to_remove}
-      hdfs dfs -deleteSnapshot "${dir}" "${snap_version_name}"
+      if hdfs dfs -deleteSnapshot "${dir}" "${snap_version_name}" ; then
+        info " snapshot ${snap_to_remove} removed"
+      else
+      { error "ERROR removing snapshot ${snap_to_remove}"; exit 1 ;}
+      fi
     done
-
   else
     info "no additional snapnshots to remove, ${nb_existing_snapshots} snapnshots exists for ${dir} directory  "
-    info "list of existing_snapshots"
-    printf "%s\n"  "${arr_existing_snapshots[@]}"
-    exit 0
   fi
+  info "list of remaining_snapshots"
+  printf "%s\n"  "${arr_existing_snapshots[@]}"
 
 }
