@@ -15,11 +15,13 @@ EOF
 # private functions
 #########################################################
 is_strictly_positive_integer() {
-    { [[ $# -eq 1 ]] && [[ "$1" =~ ^[0-9]+$ ]] && [[ $1 -gt 0 ]] ;}  || \
-    { error "${FUNCNAME[0]}: $1 must be a valid integer and > 0" ; exit 1 ;}
+  debug "${FUNCNAME[0]} $@"
+  { [[ $# -eq 1 ]] && [[ "$1" =~ ^[0-9]+$ ]] && [[ $1 -gt 0 ]] ;}  || \
+  { error "${FUNCNAME[0]}: $1 must be a valid integer and > 0" ; exit 1 ;}
 }
 
 check_hbase_table_exists() {
+  debug "${FUNCNAME[0]} $@"
   if ! echo "exists '$1:$2' " | hbase shell -n | grep -q "does exist" ; then
    { error "${FUNCNAME[0]}: ERROR table $1:$2 does not exist"; exit 1 ;}
   fi
@@ -29,6 +31,7 @@ check_hbase_table_exists() {
 # public functions
 #########################################################
 create_table_snapshot () {
+  debug "${FUNCNAME[0]} $@"
   [[ $# -eq 2 ]] || \
   { error "${FUNCNAME[0]}: required args are <hbase_namespace> <hbase_table>  "; exit 1 ;}
   check_hbase_table_exists "$1" "$2"

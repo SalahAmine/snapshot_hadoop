@@ -20,17 +20,20 @@ EOF
 # private functions
 #########################################################
 is_strictly_positive_integer() {
+  debug "${FUNCNAME[0]} $@"
     { [[ $# -eq 1 ]] && [[ "$1" =~ ^[0-9]+$ ]] && [[ $1 -gt 0 ]] ;}  || \
     { error "${FUNCNAME[0]}: $1 must be a valid integer and > 0" ; exit 1 ;}
 }
 
 check_hbase_table_exists() {
+  debug "${FUNCNAME[0]} $@"
   if ! echo "exists '$1:$2' " | hbase shell -n | grep -q "does exist" ; then
    { error "${FUNCNAME[0]}: ERROR table $1:$2 does not exist"; exit 1 ;}
   fi
 }
 
 check_snapshot_exists() {
+  debug "${FUNCNAME[0]} $@"
   [[ $# -eq 1 ]] || { error "${FUNCNAME[0]}: Please provide a snapshot_name "; exit 1 ;}
   local snapshot_name=$1 ; local res
   res=$( echo "list_snapshots '^${snapshot_name}$' " | hbase shell -n 2>&1  )
@@ -44,6 +47,7 @@ check_snapshot_exists() {
 #########################################################
 # get list of retained snapnshots in chronological order
 list_all_snapshots () {
+  debug "${FUNCNAME[0]} $@"
   #check
   [[ $# -eq 2 ]] || \
   { error "${FUNCNAME[0]}: ERROR required args are  <hbase_namespace> <hbase_table> "; exit 1 ;}
@@ -57,6 +61,7 @@ list_all_snapshots () {
 }
 
 restore_table() {
+  debug "${FUNCNAME[0]} $@"
   #check
   [[ $# -eq 3 ]] || \
   { error "${FUNCNAME[0]}: required args are <hbase_namespace> <hbase_table> <snapshot_name> "; exit 1 ;}
@@ -75,6 +80,7 @@ restore_table() {
 }
 
 check_and_apply_retention() {
+  debug "${FUNCNAME[0]} $@"
   #check
   [[ $# -eq 2 || $# -eq 3  ]]  || \
   { error "${FUNCNAME[0]}: required args are <hbase_namespace> <hbase_table> <snapshot_name> [nb_snapshots_to_retain] "; exit 1 ;}
@@ -114,12 +120,12 @@ check_and_apply_retention() {
 
 
 delete_snapshot() {
-[[ $# -eq 1 ]] || { error "${FUNCNAME[0]}: Please provide a snapshot_name "; exit 1 ; }
-local snapshot_name=$1 ;
-if echo "delete_snapshot '${snapshot_name}'" | hbase shell -n ; then
-{ info "${FUNCNAME[0]}: snapshot ${snapshot_name} successfully deleted" ; }
-else
-{ error "${FUNCNAME[0]}: error deleting snapshot ${snapshot_name}"; exit 1  ; }
-fi
-
+  debug "${FUNCNAME[0]} $@"
+  [[ $# -eq 1 ]] || { error "${FUNCNAME[0]}: Please provide a snapshot_name "; exit 1 ; }
+  local snapshot_name=$1 ;
+  if echo "delete_snapshot '${snapshot_name}'" | hbase shell -n ; then
+  { info "${FUNCNAME[0]}: snapshot ${snapshot_name} successfully deleted" ; }
+  else
+  { error "${FUNCNAME[0]}: error deleting snapshot ${snapshot_name}"; exit 1  ; }
+  fi
 }
