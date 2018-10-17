@@ -109,3 +109,15 @@ check_and_apply_retention() {
 
 
 }
+
+
+delete_snapshot() {
+[[ $# -eq 1 ]] || { error "${FUNCNAME[0]}: Please provide a snapshot_name "; exit 1 ; }
+local snapshot_name=$1 ;
+if echo "delete_snapshot '${snapshot_name}'" | hbase shell -n ; then
+{ info "${FUNCNAME[0]}: snapshot ${snapshot_name} successfully deleted" ; }
+else
+{ error "${FUNCNAME[0]}: error deleting snapshot ${snapshot_name}"; exit 1  ; }
+fi
+
+}

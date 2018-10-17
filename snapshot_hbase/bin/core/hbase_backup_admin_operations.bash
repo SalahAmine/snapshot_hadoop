@@ -28,6 +28,11 @@
       check_and_apply_retention "$@"
       exit
       ;;
+      delete_snapshot)
+      shift
+      delete_snapshot "$@"
+      exit
+        ;;
     *)  usage
       exit 1
       ;;
