@@ -7,6 +7,9 @@
 .  "${__project_dir}/conf/env.bash"
 .  "${__project_dir}/bin/utils/hive_backup_utils.bash"
 
+[[ -z ${BEELINE} ]] && \
+{ error " BEELINE env variable not set, please specify it under ${__project_dir}/conf/env.bash" ; exit 1 ; }
+
 
   case "$1" in
     backup_table)
