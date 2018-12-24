@@ -13,11 +13,6 @@ a backup constists of
 
      utility script for backuping hive tables and applying a retention policy on backups
 
-     STRATEGY: a backup constists of
-     1-backup schema into output/<hive_db_name>.<hive_table_name>.<SNAPSHOT_NAME>
-     2-bachkup of data table ( using hdfs snapshot mechanism ) under the table location  with the same <SNAPSHOT_NAME>
-
-
    MUST BE RUN WITH TABLE OWNER PRIVILEGES
 
          ## backup an hive table
