@@ -1,3 +1,4 @@
+# snapshot_hive
 snapshot_hive is intended for backuping hive tables and applying a retention policy on backups
 It depends on the snapshot_hdfs projetcs because the data is snapshotted
 using the hdfs snapshot feature
