@@ -28,7 +28,7 @@ admin operations for managing HBase snapnshots
 ./bin/core/hbase_backup_user_operations.bash
 
  User utility script for managing HDFS snapnshots
-    ## list all the snapshot directories availalble for user vagrant
+    ## list all the snapshot directories availalble for user $user
     list_snapshottable_dirs
     ## creates a snapshot for a directory,user vagrant must be owner of this directory
     create_snapshot <dir> [snapshot_name]
