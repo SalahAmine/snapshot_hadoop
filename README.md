@@ -17,3 +17,7 @@ relies on [hbase snapshot](https://blog.cloudera.com/blog/2013/03/introduction-t
 
 ## Authors
  S.A SELLAMI
+ 
+ ## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
