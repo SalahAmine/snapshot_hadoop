@@ -1,5 +1,5 @@
-
-snapshot hbase is intended for backuping hbase tables, restauring tables
+# snapshot_hbase
+snapshot_hbase is intended for backuping hbase tables, restauring tables
 and applying a retention policy on backups.
 It uses the snapshot feature offered by hbase
 
