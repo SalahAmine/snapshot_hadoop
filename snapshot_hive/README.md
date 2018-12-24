@@ -4,7 +4,7 @@ It depends on the snapshot_hdfs projetcs because the data is snapshotted
 using the hdfs snapshot feature
 
 ## STRATEGY
-a backup constists of:
+a backup constists of
      1-backup schema into output/<hive_db_name>.<hive_table_name>.<SNAPSHOT_NAME>
      2-bachkup of data table ( using hdfs snapshot mechanism ) under the table location/.snapshot in hdfs  with the same <SNAPSHOT_NAME>
 
