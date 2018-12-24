@@ -7,3 +7,5 @@ uses hdfs snapshots under the hood ( See: https://hadoop.apache.org/docs/current
 enables to extract hive DDL + relies on snapshot_HDFS API to snapshot data.
 ## snapshot_hbase 
 uses hbase snapshot under the hood ( See https://blog.cloudera.com/blog/2013/03/introduction-to-apache-hbase-snapshots/) 
+
+* [README.md](https://github.com/SalahAmine/snapshot_hadoop_API/edit/master/snapshot_hbase/README.md) 
