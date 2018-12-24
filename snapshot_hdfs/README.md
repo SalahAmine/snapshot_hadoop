@@ -29,6 +29,7 @@ all snapshottable directories for all users
 ./bin/core/hdfs_backup_user_operations.bash
 
   User utility script for managing HDFS snapnshots
+  
     ## list all the snapshot directories availalble for user $user
     list_snapshottable_dirs
     ## creates a snapshot for a directory,user vagrant must be owner of this directory
