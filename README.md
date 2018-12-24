@@ -14,3 +14,6 @@ enables to extract hive DDL + relies on snapshot_HDFS API to snapshot data.
 relies on [hbase snapshot](https://blog.cloudera.com/blog/2013/03/introduction-to-apache-hbase-snapshots/) 
 
 * [README.md](https://github.com/SalahAmine/snapshot_hadoop_API/edit/master/snapshot_hbase/README.md) 
+
+## Authors
+ S.A SELLAMI
