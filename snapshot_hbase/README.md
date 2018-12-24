@@ -5,14 +5,15 @@ It uses the snapshot feature offered by hbase
 
 It is divided into two main scripts :
 
+```
 hbase_backup_admin_operations.bash
-
+```
 this script is to be launched by hbase admin (hbase by default ) to perform
 admin operations for managing HBase snapnshots
 
+```
 hbase_backup_user_operations.bash
-
-
+```
 this script is intended for snapshot user operations. it allows to perform
 taks like  creating snapshots
 this script can either be launched by the user owner of the directory
