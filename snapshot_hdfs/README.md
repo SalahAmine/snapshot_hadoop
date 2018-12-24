@@ -1,4 +1,4 @@
-#snapshot_hdfs
+# snapshot_hdfs
 snapshot_hdfs is a wrapper tool of hdfs snapshot functionality.
 It uses the hdfs snapshot feature.
 It is divided into two main scripts :
